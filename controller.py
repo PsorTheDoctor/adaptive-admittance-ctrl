@@ -24,9 +24,6 @@ class AdaptiveAdmittanceCtrl:
         self.force_err = np.zeros(dof)
         # self.tracking_err = np.zeros(dof)
 
-        self.pos_des = np.zeros(dof)
-        self.vel_des = np.zeros(dof)
-
         self.tau = np.zeros(dof)  # Controller output
         self.v = np.zeros(dof)  # Feedforward term
         self.gamma = 4  # Tracking error coeff
@@ -43,16 +40,15 @@ class AdaptiveAdmittanceCtrl:
 
         self.pos_list = np.zeros((trials, dof, self.samples))
         self.vel_list = np.zeros((trials, dof, self.samples))
+
         self.pos_err_list = np.zeros((trials, dof, self.samples))
         self.vel_err_list = np.zeros((trials, dof, self.samples))
         self.tracking_err_list = np.zeros((trials, dof, self.samples))
-        self.pos_des_list = np.zeros((trials, dof, self.samples))
-        self.vel_des_list = np.zeros((trials, dof, self.samples))
+
         self.ks_list = np.zeros((trials, dof, self.samples))
         self.kd_list = np.zeros((trials, dof, self.samples))
         self.v_list = np.zeros((trials, dof, self.samples))
         self.tau_list = np.zeros((trials, dof, self.samples))
-        self.force_list = np.zeros((trials, dof, self.samples))
 
     def radialBasis(self, alpha, basis_functions):
         pv = PhaseVariable()
@@ -83,17 +79,13 @@ class AdaptiveAdmittanceCtrl:
         self.vel = self.vel + self.acc * self.dt
         self.pos = self.pos + self.vel * self.dt
 
-    def fit(self, pos, vel, trial, ks, kd, v, tau1, actual_force, desired_force, sample):
+    def fit(self, desired_pos, desired_vel, trial, ks, kd, v, tau1, actual_force, desired_force, sample):
         i = trial
         j = sample
 
-        for k in range(self.dof):
-            self.pos_des[k] = pos[k]
-            self.vel_des[k] = vel[k]
-
         self.force_err = actual_force - desired_force
-        pos_err = np.subtract(self.pos, self.pos_des)
-        vel_err = np.subtract(self.vel, self.vel_des)
+        pos_err = np.subtract(self.pos, desired_pos)
+        vel_err = np.subtract(self.vel, desired_vel)
         tracking_err = self.gamma * pos_err + vel_err
 
         self.mass_spring_damper()
@@ -127,4 +119,3 @@ class AdaptiveAdmittanceCtrl:
             self.kd_list[i][k][j] = self.kd[k]
             self.v_list[i][k][j] = self.v[k]
             self.tau_list[i][k][j] = self.tau[k]
-            self.force_list[i][k][j] = self.force_err[k]
