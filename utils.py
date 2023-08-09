@@ -7,7 +7,7 @@ def load_simulated_data():
     Simulated sinus function.
     """
     dof = 3
-    x = np.linspace(-np.pi, np.pi, 1000)
+    x = np.linspace(0, 2 * np.pi, 1500)
 
     pos = np.zeros((dof, len(x)))
     vel = np.zeros((dof, len(x)))
@@ -21,13 +21,13 @@ def load_simulated_data():
 
 def load_empirical_data():
     """
-    Data collected during the expiriment with UR5.
+    Data collected during the experiment with UR5.
     """
     file = 'data.xls'
     data = np.array(pd.read_excel(file))
     data = np.transpose(data)
 
-    n = 1000
+    n = 1500
     pos = data[0:3, :n]
     vel = data[3:6, :n]
     force = data[6:9, :n]

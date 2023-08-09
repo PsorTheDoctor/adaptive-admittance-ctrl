@@ -7,7 +7,7 @@ from utils import *
 def run_controller(desired_pos, desired_vel, desired_force):
     dof = 3
     trials = 7
-    x = np.linspace(-np.pi, np.pi, 1000)
+    x = np.linspace(0, 2 * np.pi, 1500)
     samples = len(x)
 
     tau = np.ones(dof)
@@ -38,60 +38,55 @@ def run_controller(desired_pos, desired_vel, desired_force):
 
 
 def plot_input(pos, vel, force):
-    fig, ax = plt.subplots(3, 1, sharex=True)
+    fig, ax = plt.subplots(3, 1, sharex=True, figsize=(8, 4))
+    ax[0].set_title('Desired trajectory')
     ax[0].plot(pos[0])
-    ax[0].set_xlabel('t')
     ax[0].set_ylabel('Positon')
     ax[1].plot(vel[0])
     ax[1].set_ylabel('Velocity')
     ax[2].plot(force[0])
     ax[2].set_ylabel('Force')
+    ax[2].set_xlabel('t')
 
 
 def plot_results(ctrl):
-    x = np.linspace(-np.pi, np.pi, 1000)
+    x = np.linspace(0, 2 * np.pi, 1500)
 
-    fig, ax = plt.subplots(3, 1, sharex=True)
+    fig, ax = plt.subplots(3, 1, sharex=True, figsize=(8, 4))
     ax[0].plot(x, ctrl.tau_list[0, 0, :], label='First trial')
-    ax[0].plot(x, ctrl.tau_list[3, 0, :], label='Middle trial')
+    ax[0].plot(x, ctrl.tau_list[3, 0, :], label='Middle trial', color='lightgray')
     ax[0].plot(x, ctrl.tau_list[6, 0, :], label='Final trial')
     ax[0].legend()
 
     ax[1].plot(x, ctrl.tau_list[0, 1, :], label='First trial')
-    ax[1].plot(x, ctrl.tau_list[3, 1, :], label='Middle trial')
+    ax[1].plot(x, ctrl.tau_list[3, 1, :], label='Middle trial', color='lightgray')
     ax[1].plot(x, ctrl.tau_list[6, 1, :], label='Final trial')
     ax[1].legend()
 
     ax[2].plot(x, ctrl.tau_list[0, 2, :], label='First trial')
-    ax[2].plot(x, ctrl.tau_list[3, 2, :], label='Middle trial')
+    ax[2].plot(x, ctrl.tau_list[3, 2, :], label='Middle trial', color='lightgray')
     ax[2].plot(x, ctrl.tau_list[6, 2, :], label='Final trial')
     ax[2].legend()
 
-    fig, ax = plt.subplots(4, 1, sharex=True)
+    fig, ax = plt.subplots(4, 1, sharex=True, figsize=(8, 6))
     ax[0].plot(x, ctrl.ks_list[0, 0, :], label='First trial')
-    ax[0].plot(x, ctrl.ks_list[3, 0, :], label='Middle trial')
+    ax[0].plot(x, ctrl.ks_list[3, 0, :], label='Middle trial', color='lightgray')
     ax[0].plot(x, ctrl.ks_list[6, 0, :], label='Final trial')
-    ax[0].set_xlabel('t')
     ax[0].set_ylabel('Ks')
-    ax[0].legend()
 
     ax[1].plot(x, ctrl.kd_list[0, 0, :], label='First trial')
-    ax[1].plot(x, ctrl.kd_list[3, 0, :], label='Middle trial')
+    ax[1].plot(x, ctrl.kd_list[3, 0, :], label='Middle trial', color='lightgray')
     ax[1].plot(x, ctrl.kd_list[6, 0, :], label='Final trial')
-    ax[1].set_xlabel('t')
     ax[1].set_ylabel('Kd')
-    ax[1].legend()
 
-    ax[2].plot(x, ctrl.pos_err_list[0, 0, :], label='First trial')
-    ax[2].plot(x, ctrl.pos_err_list[3, 0, :], label='Middle trial')
-    ax[2].plot(x, ctrl.pos_err_list[6, 0, :], label='Final trial')
-    ax[2].set_xlabel('t')
+    ax[2].plot(x, np.abs(ctrl.pos_err_list[0, 0, :]), label='First trial')
+    ax[2].plot(x, np.abs(ctrl.pos_err_list[3, 0, :]), label='Middle trial', color='lightgray')
+    ax[2].plot(x, np.abs(ctrl.pos_err_list[6, 0, :]), label='Final trial')
     ax[2].set_ylabel('Position error')
-    ax[2].legend()
 
-    ax[3].plot(x, ctrl.vel_err_list[0, 0, :], label='First trial')
-    ax[3].plot(x, ctrl.vel_err_list[3, 0, :], label='Middle trial')
-    ax[3].plot(x, ctrl.vel_err_list[6, 0, :], label='Final trial')
+    ax[3].plot(x, np.abs(ctrl.vel_err_list[0, 0, :]), label='First trial')
+    ax[3].plot(x, np.abs(ctrl.vel_err_list[3, 0, :]), label='Middle trial', color='lightgray')
+    ax[3].plot(x, np.abs(ctrl.vel_err_list[6, 0, :]), label='Final trial')
     ax[3].set_xlabel('t')
     ax[3].set_ylabel('Velocity error')
     ax[3].legend()
@@ -100,10 +95,10 @@ def plot_results(ctrl):
 
 
 def main():
-    pos, vel, force = load_simulated_data()
-    ctrl = run_controller(desired_pos=pos, desired_vel=vel, desired_force=force)
-    plot_input(pos, vel, force)
-    plot_results(ctrl)
+    # pos, vel, force = load_simulated_data()
+    # ctrl = run_controller(desired_pos=pos, desired_vel=vel, desired_force=force)
+    # plot_input(pos, vel, force)
+    # plot_results(ctrl)
 
     pos, vel, force = load_empirical_data()
     ctrl = run_controller(desired_pos=pos, desired_vel=vel, desired_force=force)

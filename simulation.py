@@ -1,60 +1,75 @@
-"""
-import pybullet as p
-import pybullet_data
+import numpy as np
+import matplotlib.pyplot as plt
 import math
-import time
+from scipy.spatial.transform import Rotation
 from controller import AdaptiveAdmittanceCtrl
 
-p.connect(p.GUI)
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
-p.setGravity(0, 0, -9.81)
 
-# Create environment
-plane = p.loadURDF('plane.urdf')
-p.changeDynamics(plane, -1, lateralFriction=60)
+def run_controller(desired_pos, desired_vel, desired_force):
+    dof = 3
+    trials = 7
+    x = np.linspace(0, 2 * np.pi, 1500)
+    samples = len(x)
 
-# Create robot
-robot = p.loadURDF('kuka_iiwa/model.urdf', basePosition=[0, 0, 0.05])
-n_joints = p.getNumJoints(robot)
-end_effector = n_joints - 1
+    tau = np.ones(dof)
+    ks = np.ones(dof)
+    kd = np.ones(dof)
+    v = np.ones(dof)
 
-# Create object
-visual_shape = p.createVisualShape(
-    shapeType=p.GEOM_BOX, halfExtents=[0.1, 0.1, 0.1]
-)
-collision_shape = p.createCollisionShape(
-    shapeType=p.GEOM_BOX, halfExtents=[0.1, 0.1, 0.1]
-)
-p.createMultiBody(
-    baseMass=1,
-    baseCollisionShapeIndex=collision_shape,
-    baseVisualShapeIndex=visual_shape,
-    basePosition=[1, 0, 0.05],
-    useMaximalCoordinates=True
-)
+    ctrl = AdaptiveAdmittanceCtrl(dof, trials, samples)
 
-pos = [0.25, 0, 0.2]
-orn = p.getQuaternionFromEuler([0, -math.pi, 0])
+    for trial in range(trials):
+        idx = 0
+        while idx < samples:
+            # Simulating the actual force as desired force with random noise
+            actual_force = desired_force + 0.01 * np.random.random((dof, samples))
 
-while True:
-    pos[0] += 0.0001
+            ctrl.fit(
+                desired_pos[:, idx],
+                desired_vel[:, idx],
+                trial, ks, kd, v, tau,
+                actual_force[:, idx],
+                desired_force[:, idx],
+                idx
+            )
+            # time.sleep(1./240.)
+            idx += 1
 
-    joint_poses = p.calculateInverseKinematics(
-        robot, end_effector, pos, orn
-    )
-    target_poses = joint_poses
+    return ctrl
 
-    for i in range(n_joints):
-        p.setJointMotorControl2(
-            bodyIndex=robot,
-            jointIndex=i,
-            controlMode=p.POSITION_CONTROL,
-            targetPosition=target_poses[i],
-            targetVelocity=0,
-            force=500,
-            positionGain=0.03,
-            velocityGain=1
-        )
-    p.stepSimulation()
-    time.sleep(1./240.)
-"""
+
+pos = []
+vel = []
+force = []
+r = 0.1  # Radius
+incl = np.radians(15)
+
+for t in np.linspace(0, 2 * math.pi, 1500):
+    x = 0
+    y = r * np.cos(t)
+    z = r * np.sin(t)
+
+    rot = Rotation.from_euler('y', 15, degrees=True).as_matrix()
+
+    pos.append(rot @ [x, y, z])
+    vel.append(rot @ [x, -r * np.sin(t), r * np.cos(t)])
+    force.append(rot @ [x, y, z])
+
+pos = np.transpose(pos)
+vel = np.transpose(vel)
+force = np.transpose(force)
+
+ctrl = run_controller(desired_pos=pos, desired_vel=vel, desired_force=force)
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.view_init(elev=15, azim=-135)
+ax.plot3D(pos[0, :], pos[1, :], pos[2, :], label='Demonstration')
+ax.plot3D(ctrl.pos_list[6, 0, :],
+          ctrl.pos_list[6, 1, :],
+          ctrl.pos_list[6, 2, :], label='Controller')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('z')
+ax.legend()
+plt.show()

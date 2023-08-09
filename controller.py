@@ -6,9 +6,10 @@ from phase_variable import PhaseVariable
 class AdaptiveAdmittanceCtrl:
 
     def __init__(self, dof, trials, samples):
-        self.mass = 1
-        self.spring = 40
-        self.damper = 2 * math.sqrt(self.mass * self.spring + 270)
+        # Mass, spring, and damper constants for each DoF
+        self.M = 1  # * np.eye(dof)
+        self.K = 40 # * np.eye(dof)
+        self.D = np.sqrt(self.M * self.K + 1000)
 
         self.trials = trials
         self.dof = dof
@@ -33,6 +34,7 @@ class AdaptiveAdmittanceCtrl:
             alpha=48, basis_functions=self.basis_functions
         )
         # Adaptation rates for stiffness, damping, and feedforward term
+        # that control the convergence speed
         # Values chosen arbitrarily
         self.qs = 22
         self.qd = 16
@@ -67,14 +69,19 @@ class AdaptiveAdmittanceCtrl:
             w /= w.sum()  # Normalization
             g.append(w)
 
+        print(g)
         return np.array(g)
 
     def mass_spring_damper(self):
-        self.spring_force = self.spring * self.pos
-        self.damper_force = self.damper * self.vel
+        """
+        Implementation of 2nd order mass-spring-damper:
+        Mp'' + Kp' + Dp = tau
+        """
+        self.spring_force = self.K * self.pos
+        self.damper_force = self.D * self.vel
         # noise = np.random.normal(0, 0, self.dof)
 
-        self.acc = (-self.spring_force - self.damper_force + self.tau + self.force_err) / self.mass
+        self.acc = (-self.spring_force - self.damper_force + self.tau + self.force_err) / self.M
 
         self.vel = self.vel + self.acc * self.dt
         self.pos = self.pos + self.vel * self.dt
@@ -86,7 +93,7 @@ class AdaptiveAdmittanceCtrl:
         self.force_err = actual_force - desired_force
         pos_err = np.subtract(self.pos, desired_pos)
         vel_err = np.subtract(self.vel, desired_vel)
-        tracking_err = self.gamma * pos_err + vel_err
+        tracking_err = self.gamma * pos_err + vel_err  # epsilon
 
         self.mass_spring_damper()
 
