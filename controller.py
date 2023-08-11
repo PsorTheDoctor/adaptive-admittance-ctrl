@@ -9,7 +9,7 @@ class AdaptiveAdmittanceCtrl:
         # Mass, spring, and damper constants for each DoF
         self.M = 1  # * np.eye(dof)
         self.K = 40 # * np.eye(dof)
-        self.D = np.sqrt(self.M * self.K + 1000)
+        self.D = 2 * np.sqrt(self.M * self.K + 270)
 
         self.trials = trials
         self.dof = dof
@@ -25,10 +25,10 @@ class AdaptiveAdmittanceCtrl:
         self.force_err = np.zeros(dof)
         # self.tracking_err = np.zeros(dof)
 
-        self.tau = np.zeros(dof)  # Controller output
+        self.f = np.zeros(dof)  # Controller output
         self.v = np.zeros(dof)  # Feedforward term
-        self.gamma = 4  # Tracking error coeff
-        self._lambda = 0.1  # Forgetting factor
+        self.gamma = 4 # Tracking error coeff
+        # self._lambda = 0.1  # Forgetting factor
         self.basis_functions = 3
         self.g = self.radialBasis(
             alpha=48, basis_functions=self.basis_functions
@@ -50,7 +50,7 @@ class AdaptiveAdmittanceCtrl:
         self.ks_list = np.zeros((trials, dof, self.samples))
         self.kd_list = np.zeros((trials, dof, self.samples))
         self.v_list = np.zeros((trials, dof, self.samples))
-        self.tau_list = np.zeros((trials, dof, self.samples))
+        self.f_list = np.zeros((trials, dof, self.samples))
 
     def radialBasis(self, alpha, basis_functions):
         pv = PhaseVariable()
@@ -61,38 +61,37 @@ class AdaptiveAdmittanceCtrl:
         # Variances of Gaussian basis functions
         h = 1.0 / np.gradient(c) ** 2
 
-        tau = 0.002 * self.samples
-        x = np.arange(0, tau, 0.002)
+        f = 0.002 * self.samples
+        x = np.arange(0, f, 0.002)
         g = []
         for xi in pv.rollout(x):
             w = np.exp(-0.5 * h * (xi - c) ** 2)
             w /= w.sum()  # Normalization
             g.append(w)
 
-        print(g)
         return np.array(g)
 
     def mass_spring_damper(self):
         """
         Implementation of 2nd order mass-spring-damper:
-        Mp'' + Kp' + Dp = tau
+        Mp'' + Kp' + Dp = f
         """
         self.spring_force = self.K * self.pos
         self.damper_force = self.D * self.vel
         # noise = np.random.normal(0, 0, self.dof)
 
-        self.acc = (-self.spring_force - self.damper_force + self.tau + self.force_err) / self.M
+        self.acc = (-self.spring_force - self.damper_force + self.f + self.force_err) / self.M
 
         self.vel = self.vel + self.acc * self.dt
         self.pos = self.pos + self.vel * self.dt
 
-    def fit(self, desired_pos, desired_vel, trial, ks, kd, v, tau1, actual_force, desired_force, sample):
+    def fit(self, desired_pos, desired_vel, trial, ks, kd, v, f, actual_force, desired_force, sample):
         i = trial
         j = sample
 
         self.force_err = actual_force - desired_force
-        pos_err = np.subtract(self.pos, desired_pos)
-        vel_err = np.subtract(self.vel, desired_vel)
+        pos_err = self.pos - desired_pos
+        vel_err = self.vel - desired_vel
         tracking_err = self.gamma * pos_err + vel_err  # epsilon
 
         self.mass_spring_damper()
@@ -102,7 +101,7 @@ class AdaptiveAdmittanceCtrl:
             self.ks = ks
             self.kd = kd
             self.v = v
-            self.tau = tau1
+            self.f = f
         else:
             self.ks = self.ks_list[i - 1][:, j] + self.qs * self.tracking_err_list[i - 1][:, j] * \
                       self.pos_err_list[i - 1][:, j] * self.g[j, self.basis_functions - self.dof:self.basis_functions]
@@ -113,8 +112,8 @@ class AdaptiveAdmittanceCtrl:
             self.v = self.v_list[i - 1][:, j] + self.qv * self.tracking_err_list[i - 1][:, j] * \
                      self.g[j, self.basis_functions - self.dof:self.basis_functions]
 
-            # Combine gains into torque
-            self.tau = -(self.ks * pos_err + self.kd * vel_err) - self.v
+            # Combine gains into force
+            self.f = -(self.ks * pos_err + self.kd * vel_err) - self.v
 
         for k in range(self.dof):
             self.pos_list[i][k][j] = self.pos[k]
@@ -125,4 +124,4 @@ class AdaptiveAdmittanceCtrl:
             self.ks_list[i][k][j] = self.ks[k]
             self.kd_list[i][k][j] = self.kd[k]
             self.v_list[i][k][j] = self.v[k]
-            self.tau_list[i][k][j] = self.tau[k]
+            self.f_list[i][k][j] = self.f[k]
