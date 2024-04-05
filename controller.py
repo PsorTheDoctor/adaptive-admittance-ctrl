@@ -27,7 +27,7 @@ class AdaptiveAdmittanceCtrl:
 
         self.f = np.zeros(dof)  # Controller output
         self.v = np.zeros(dof)  # Feedforward term
-        self.gamma = 4 # Tracking error coeff
+        self.gamma = 5 # Tracking error coeff
         # self._lambda = 0.1  # Forgetting factor
         self.basis_functions = 3
         self.g = self.radialBasis(
@@ -57,9 +57,11 @@ class AdaptiveAdmittanceCtrl:
 
         # Centres of Gaussian basis functions
         c = np.exp(alpha * np.linspace(0, 1, basis_functions))
+        print(c)
 
         # Variances of Gaussian basis functions
         h = 1.0 / np.gradient(c) ** 2
+        print(h)
 
         f = 0.002 * self.samples
         x = np.arange(0, f, 0.002)
@@ -125,3 +127,7 @@ class AdaptiveAdmittanceCtrl:
             self.kd_list[i][k][j] = self.kd[k]
             self.v_list[i][k][j] = self.v[k]
             self.f_list[i][k][j] = self.f[k]
+
+
+ctrl = AdaptiveAdmittanceCtrl(3, 7, 1000)
+ctrl.radialBasis(48, 10)
