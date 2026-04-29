@@ -17,12 +17,3 @@ If you find this code useful, consider citing:
   publisher={IEEE}
 }
 ```
-
-```bibtex
-@software{wolkowycki2023adaptive,
-    author = {Wolkowycki, Adam},
-    title = {Python implementation of the Adaptive Admittance Control},
-    url = {https://github.com/PsorTheDoctor/adaptive-admittance-ctrl},
-    year = {2023}
-}
-```
